@@ -22,16 +22,24 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Transformations
 import com.example.android.trackmysleepquality.database.SleepDatabaseDao
 import com.example.android.trackmysleepquality.database.SleepNight
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * ViewModel for SleepTrackerFragment.
  */
+
 class SleepTrackerViewModel(
         val database: SleepDatabaseDao,
         application: Application) : AndroidViewModel(application) {
 
     private var viewModelJob = Job()
+
+
+
     private val uiScope = CoroutineScope(Dispatchers.Main + viewModelJob)
 
     private val nights = database.getAllNights()
@@ -47,6 +55,7 @@ class SleepTrackerViewModel(
     init {
         initializeTonight()
     }
+
     private fun initializeTonight() {
         uiScope.launch {
             tonight.value = getTonightFromDatabase()
@@ -55,19 +64,14 @@ class SleepTrackerViewModel(
 
     private suspend fun getTonightFromDatabase(): SleepNight? {
 
-        return withContext(context = Dispatchers.IO) {
+        return withContext(Dispatchers.IO) {
+
             var night = database.getTonight()
             if (night?.endTimeMilli != night?.startTimeMilli) {
                 night = null
             }
             night
         }
-
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        viewModelJob.cancel()
     }
 
     fun onStartTracking() {
@@ -83,6 +87,7 @@ class SleepTrackerViewModel(
             database.insert(night)
         }
     }
+
     fun onStopTracking() {
         uiScope.launch {
             val oldNight = tonight.value ?: return@launch
@@ -90,11 +95,13 @@ class SleepTrackerViewModel(
             update(oldNight)
         }
     }
+
     private suspend fun update(night: SleepNight) {
         withContext(Dispatchers.IO) {
             database.update(night)
         }
     }
+
     fun onClear() {
         uiScope.launch {
             clear()
@@ -108,6 +115,8 @@ class SleepTrackerViewModel(
         }
     }
 
+    override fun onCleared() {
+        super.onCleared()
+        viewModelJob.cancel()
+    }
 }
-
-
